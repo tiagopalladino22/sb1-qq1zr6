@@ -17,6 +17,7 @@ import PlayerDetails from './components/PlayerDetails';
 import RivalDetails from './components/rivalDetails';
 import MatchPlanning from './components/matchPlanning';
 import MatchPlans from './components/matchsPlans';
+import MatchPlanDetails from './components/matchPlanDetails';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route path="/matchs" element={<Matchs />} />
               <Route path="/formation-details/:id" element={<FormationDetails />} />
               <Route path="/match-details/:id" element={<MatchDetails />} />
+              <Route path="/match-plan-details/:id" element={<MatchPlanDetails />} />
               <Route path="/player/:id" element={<PlayerDetails />} />
               <Route path="/rival-details/:id" element={<RivalDetails />} />
             </Routes>

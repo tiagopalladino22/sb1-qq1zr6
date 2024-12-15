@@ -99,10 +99,10 @@ export default function Dashboard() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Team Dashboard</h1>
         <button
-          onClick={() => navigate('/add-match')}
+          onClick={() => navigate('/match-planning')}
           className="bg-[#218b21] text-white px-4 py-2 rounded-lg hover:bg-[#196a19]"
         >
-          Agregar Partido
+          Planificar Partido
         </button>
       </div>
 
