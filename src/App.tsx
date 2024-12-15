@@ -15,6 +15,8 @@ import Matchs from './components/Matchs';
 import MatchDetails from './components/MatchDetails';
 import PlayerDetails from './components/PlayerDetails';
 import RivalDetails from './components/rivalDetails';
+import MatchPlanning from './components/matchPlanning';
+import MatchPlans from './components/matchsPlans';
 
 function App() {
   return (
@@ -33,6 +35,8 @@ function App() {
               <Route path="/add-rival" element={<AddRival />} />
               <Route path="/add-match" element={<AddMatch />} />
               <Route path="/add-formation" element={<AddFormation />} />
+              <Route path="/match-plans" element={<MatchPlans />} />
+              <Route path="/match-planning" element={<MatchPlanning />} />
               <Route path="/matchs" element={<Matchs />} />
               <Route path="/formation-details/:id" element={<FormationDetails />} />
               <Route path="/match-details/:id" element={<MatchDetails />} />

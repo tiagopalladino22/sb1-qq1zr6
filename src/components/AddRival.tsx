@@ -77,27 +77,6 @@ export default function AddRival() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-black mb-2">Campo de juego</label>
-          <input
-            type="text"
-            value={formData.homeGround}
-            onChange={(e) => setFormData((prev) => ({ ...prev, homeGround: e.target.value }))}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-black mb-2">Notas Iniciales</label>
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-            rows={4}
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Agregar informacion relevante sobre este equipo"
-          />
-        </div>
-
         <div className="flex justify-end space-x-4">
           <button
             type="button"

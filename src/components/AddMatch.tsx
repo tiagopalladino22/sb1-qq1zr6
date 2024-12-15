@@ -33,10 +33,9 @@ interface Player {
 }
 
 interface Formation {
-  id?: string;
   name: string;
   type: string;
-  players: { [position: string]: string };
+  players: { [position: string]: string }; // Mapeo de posiciones a nombres de jugadores
   roles: { [position: string]: string }; // Mapeo de posiciones a nombres personalizados
   gamesPlayed: number;
   goalsFor?: number;
@@ -49,7 +48,9 @@ interface Formation {
   defenderLines: number[];
   midfielderLines: number[];
   forwardLines: number[];
+  goalkeeper: string; // Rol del arquero
 }
+
 
 
 interface Rival {
@@ -128,6 +129,9 @@ export default function AddMatch() {
   });
 
   useEffect(() => {
+
+    console.log('Formation Players:', formationPlayers); // Verifica cómo están las claves y valores
+
     const storedPlayers = JSON.parse(localStorage.getItem('players') || '[]');
     setPlayers(storedPlayers);
 
@@ -141,13 +145,13 @@ export default function AddMatch() {
   const handleFormationChange = (formationName: string) => {
     const selectedFormation = formations.find((f) => f.name === formationName);
     if (selectedFormation) {
-      const positions = selectedFormation.roles || {}; // Cargar los roles personalizados
-  
       const updatedFormationPlayers: { [position: string]: string } = {};
-      Object.keys(positions).forEach((position) => {
-        updatedFormationPlayers[position] = ''; // Inicializar jugadores para cada posición
-      });
-  
+      if (selectedFormation.roles) {
+        // Usar los nombres personalizados de las posiciones
+        Object.entries(selectedFormation.roles).forEach(([position, role]) => {
+          updatedFormationPlayers[role] = ''; // Inicializar jugadores para cada posición personalizada
+        });
+      }
       setFormationPlayers(updatedFormationPlayers);
       setFormData((prev) => ({ ...prev, formation: formationName }));
     }
@@ -155,19 +159,27 @@ export default function AddMatch() {
   
   
   
+  
+  
+  
+  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
   
+    console.log('Formation Players:', formationPlayers);
+
     const matchId = formData.id;
     const existingMatches = JSON.parse(localStorage.getItem("matches") || "[]");
   
     const newMatchData = {
       ...formData,
-      id: matchId,
+      formationUsed: formData.formation, // Asegúrate de guardar el nombre de la formación
       formationPlayers, // Guardar los jugadores asignados a cada posición
     };
-  
+
+    console.log('Datos del nuevo partido:', newMatchData); // Diagnóstico completo antes de guardar
+    
     const updatedMatches = [...existingMatches, newMatchData];
     localStorage.setItem("matches", JSON.stringify(updatedMatches));
   
@@ -496,31 +508,32 @@ export default function AddMatch() {
 {/* Asignación de jugadores y secciones agrupadas correctamente */}
 {Object.keys(formationPlayers).length > 0 && (
   <div>
-    <h3 className="font-semibold text-gray-700 mt-4">Assign Players to Positions</h3>
+    <h3 className="font-semibold text-gray-700 mt-4">Asignar Jugadores a Posiciones</h3>
     {Object.entries(formationPlayers).map(([position, player], index) => {
-      const roleName = formations.find(f => f.name === formData.formation)?.roles[position] || position; // Usar el nombre personalizado o el nombre genérico
-      return (
-        <div key={index} className="flex items-center space-x-4 my-2">
-          <label className="text-sm font-medium text-gray-600 capitalize">
-            {roleName} {/* Mostrar el nombre del rol */}
-          </label>
-          <select
-            value={player}
-            onChange={(e) =>
-              setFormationPlayers((prev) => ({ ...prev, [position]: e.target.value }))
-            }
-            className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select Player</option>
-            {players.map((player) => (
-              <option key={player.id} value={player.name}>
-                {player.number} - {player.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-    })}
+  const roleName = formations.find(f => f.name === formData.formation)?.roles[position] || position;
+  return (
+    <div key={index} className="flex items-center space-x-4 my-2">
+      <label className="text-sm font-medium text-gray-600 capitalize">
+        {roleName} {/* Mostrar el nombre del rol */}
+      </label>
+      <select
+        value={player}
+        onChange={(e) =>
+          setFormationPlayers((prev) => ({ ...prev, [position]: e.target.value }))
+        }
+        className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+      >
+        <option value="">Select Player</option>
+        {players.map((player) => (
+          <option key={player.id} value={player.name}>
+            {player.number} - {player.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+})}
+
   </div>
 )}
 
@@ -698,6 +711,7 @@ export default function AddMatch() {
   </button>
 </div>
 
+
         <button
           type="submit"
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center space-x-2"
@@ -709,3 +723,4 @@ export default function AddMatch() {
     </div>
   );
 }
+

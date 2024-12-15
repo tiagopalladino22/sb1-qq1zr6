@@ -5,13 +5,22 @@ import { useNavigate } from 'react-router-dom';
 interface Formation {
   name: string;
   type: string;
+  players: { [position: string]: string }; // Mapeo de posiciones a nombres de jugadores
+  roles: { [position: string]: string }; // Mapeo de posiciones a nombres personalizados
   gamesPlayed: number;
+  goalsFor?: number;
+  goalsAgainst?: number;
+  shotsFor?: number;
+  shotsAgainst?: number;
+  wins?: number;
+  draws?: number;
+  losses?: number;
   defenderLines: number[];
   midfielderLines: number[];
   forwardLines: number[];
-  goalkeeper: string; // Guardar el rol del arquero
-  roles: string[]; // Guardar roles personalizados para cada posición
+  goalkeeper: string; // Rol del arquero
 }
+
 
 export default function Formations() {
   const [formationName, setFormationName] = useState('');
@@ -28,6 +37,7 @@ export default function Formations() {
   }, []);
 
   const handleSaveFormation = () => {
+    console.log('Roles definidos en AddFormation:', roles); // Aquí verificas los roles antes de guardar
     if (formationName.trim() === '') {
       alert('Por favor agregar un nombre a la formación');
       return;
@@ -47,9 +57,14 @@ export default function Formations() {
       defenderLines,
       midfielderLines,
       forwardLines,
-      goalkeeper: roles[0] || 'Arquero', // El primer rol siempre será el arquero
-      roles,
+      players: {}, // Mapeo vacío inicial
+      roles: roles.reduce((acc, role, index) => {
+        acc[`Posición ${index + 1}`] = role;
+        return acc;
+      }, {} as { [position: string]: string }),
+      goalkeeper: roles[0] || 'Arquero', // Asignar el primer rol como arquero
     };
+    
 
     const updatedFormations = [...savedFormations, newFormation];
     setSavedFormations(updatedFormations);

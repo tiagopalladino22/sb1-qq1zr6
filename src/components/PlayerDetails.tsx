@@ -93,19 +93,19 @@ export default function PlayerDetails() {
 
   const calculatePositionsPlayed = (playerMatches: Match[], playerName: string) => {
     const positionsMap: { [key: string]: { minutes: number; goals: number; assists: number; yellowCards: number; redCards: number } } = {};
-    
+  
     playerMatches.forEach((match) => {
-      const formation = formations.find(f => f.name === match.formationUsed); // Buscar la formación usada en el partido
-      
+      const formation = formations.find((f) => f.name === match.formationUsed); // Encontrar la formación usada
+  
       for (const [position, name] of Object.entries(match.formationPlayers)) {
         if (name === playerName) {
-          const roleName = formation?.roles?.[position] || position; // Usar el nombre personalizado o el nombre genérico
-          
+          const roleName = formation?.roles[position] || position; // Usar roles o posición genérica
+  
           if (!positionsMap[roleName]) {
             positionsMap[roleName] = { minutes: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 };
           }
   
-          positionsMap[roleName].minutes += 90; // Asumiendo que jugó todo el partido
+          positionsMap[roleName].minutes += 90; // Assuming full match
           positionsMap[roleName].goals += match.scorers.filter((scorer) => scorer === playerName).length;
           positionsMap[roleName].assists += match.assists.filter((assist) => assist === playerName).length;
           positionsMap[roleName].yellowCards += match.cards.filter((card) => card.player === playerName && card.type === "yellow").length;
@@ -121,6 +121,8 @@ export default function PlayerDetails() {
       }))
     );
   };
+  
+  
   
   
   
@@ -266,7 +268,7 @@ export default function PlayerDetails() {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-4 text-center text-gray-500">
-                    No data available.
+                    No hay informacion disponible.
                   </td>
                 </tr>
               )}
