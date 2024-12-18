@@ -15,7 +15,7 @@ export default function MatchPlansPage() {
 
   useEffect(() => {
     // Cargar las planificaciones guardadas desde localStorage
-    const storedPlans = JSON.parse(localStorage.getItem("matches") || "[]");
+    const storedPlans = JSON.parse(localStorage.getItem("matchPlans") || "[]"); // <-- Aquí
     setMatchPlans(storedPlans);
   }, []);
 
@@ -27,7 +27,7 @@ export default function MatchPlansPage() {
 
     const updatedPlans = matchPlans.filter((plan) => plan.id !== id);
     setMatchPlans(updatedPlans);
-    localStorage.setItem("matches", JSON.stringify(updatedPlans));
+    localStorage.setItem("matchPlans", JSON.stringify(updatedPlans)); // <-- Aquí
   };
 
   return (
@@ -102,4 +102,3 @@ export default function MatchPlansPage() {
     </div>
   );
 }
-

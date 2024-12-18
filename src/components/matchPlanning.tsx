@@ -31,17 +31,29 @@ interface Formation {
 }
 
 interface Match {
-  id: string; // Identificador único
-  rival: string; // Nombre del rival
-  formation: string; // Nombre de la formación seleccionada
-  lineup: { [position: string]: string }; // Posiciones y nombres de los jugadores
+  id: string;
+  rival: string;
+  formation: string;
+  lineup: { [position: string]: string };
   score: {
     home: number;
     away: number;
   };
   shotsFor: number;
   shotsAgainst: number;
+  scorers: string[];  // Lista de goleadores
+  assists: string[];  // Lista de asistencias
+  subs: { playerOut: string; playerIn: string; minute: number }[]; // Sustituciones
 }
+
+interface MatchPlan {
+  id: string;
+  rival: string;
+  formation: string;
+  lineup: { [position: string]: string }; // Posiciones y jugadores propuestos
+}
+
+
 
 interface Rival {
   name: string;
@@ -63,9 +75,12 @@ const navigate = useNavigate(); // Para redirigir después de guardar
   const [allMatches, setAllMatches] = useState<Match[]>([]);
 
   useEffect(() => {
+
+    
     // Cargar datos iniciales de localStorage
-    const storedMatches = JSON.parse(localStorage.getItem("matches") || "[]");
-    setAllMatches(storedMatches);
+    const storedPlans = JSON.parse(localStorage.getItem("matchPlans") || "[]");
+    setAllMatches(storedPlans);
+
 
     const storedFormations = JSON.parse(
       localStorage.getItem("formations") || "[]"
@@ -80,36 +95,30 @@ const navigate = useNavigate(); // Para redirigir después de guardar
   }, []);
 
   const handleSavePlan = () => {
-    // Validar campos obligatorios
     if (!rival || !selectedFormation || Object.keys(formationPlayers).length < 11) {
       alert("Completa todos los campos antes de guardar la planificación.");
       return;
     }
-
-    const newMatch: Match = {
-      id: crypto.randomUUID(), // Generar ID único
+  
+    const newPlan: MatchPlan = {
+      id: crypto.randomUUID(),
       rival: rival.name,
       formation: selectedFormation.name,
-      lineup: formationPlayers, // Mapeo de posiciones y jugadores seleccionados
-      score: {
-        home: 0, // Inicializa en 0
-        away: 0,
-      },
-      shotsFor: 0, // Inicializa en 0
-      shotsAgainst: 0, // Inicializa en 0
+      lineup: formationPlayers,
     };
-
-    // Guardar en localStorage
-    const updatedMatches = [...allMatches, newMatch];
-    setAllMatches(updatedMatches);
-    localStorage.setItem("matches", JSON.stringify(updatedMatches));
+  
+    // Guardar en localStorage bajo "matchPlans"
+    const storedPlans = JSON.parse(localStorage.getItem("matchPlans") || "[]");
+    const updatedPlans = [...storedPlans, newPlan];
+    localStorage.setItem("matchPlans", JSON.stringify(updatedPlans));
+  
     navigate('/match-plans');
-
-    // Resetear campos después de guardar
     setRival(null);
     setSelectedFormation(null);
     setFormationPlayers({});
   };
+  
+  
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -278,8 +287,7 @@ function RivalSelector({
                   <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center font-medium">
                     {displayIndex}
                   </div>
-                  <span className="text-xs text-gray-600">{role}</span>
-                  <span className="text-xs text-gray-500 italic">{positionKey}</span>
+                  <span className="text-xs text-center text-gray-600">{role}</span>
                 </div>
               );
             })}
@@ -296,7 +304,6 @@ function RivalSelector({
                   1
                 </div>
                 <span className="text-xs text-gray-600">{roles["Posición 1"] || "Arquero"}</span>
-                <span className="text-xs text-gray-500 italic">Posición 1</span>
               </div>
             </div>
       
@@ -389,41 +396,40 @@ function RivalSelector({
     setFormationPlayers: (players: { [position: string]: string }) => void;
   }) {
     const [comparisonPlayer, setComparisonPlayer] = useState<{ [position: string]: string }>({});
-    const [performance, setPerformance] = useState<any>(null);
+    const [performanceStats, setPerformanceStats] = useState({
+      asStarter: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0 },
+      notPlayed: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0 },
+    });
+    
   
     // Función para calcular rendimiento
     const calculatePerformance = (playerName: string) => {
-        const performanceStats = {
-          asStarter: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
-          notPlayed: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
-        };
-      
-        allMatches.forEach((match) => {
-          // Verificar si lineup existe
-          if (!match.lineup) return;
-      
-          const isStarter = Object.values(match.lineup).includes(playerName);
-          const result = match.score.home > match.score.away ? "win" : match.score.home < match.score.away ? "loss" : "draw";
-      
-          if (isStarter) {
-            performanceStats.asStarter.matches++;
-            if (result === "win") performanceStats.asStarter.wins++;
-            performanceStats.asStarter.goalsFor += match.score.home;
-            performanceStats.asStarter.goalsAgainst += match.score.away;
-            performanceStats.asStarter.shotsFor += match.shotsFor;
-            performanceStats.asStarter.shotsAgainst += match.shotsAgainst;
-          } else {
-            performanceStats.notPlayed.matches++;
-            if (result === "win") performanceStats.notPlayed.wins++;
-            performanceStats.notPlayed.goalsFor += match.score.home;
-            performanceStats.notPlayed.goalsAgainst += match.score.away;
-            performanceStats.notPlayed.shotsFor += match.shotsFor;
-            performanceStats.notPlayed.shotsAgainst += match.shotsAgainst;
-          }
-        });
-      
-        return performanceStats;
+      const performanceStats = {
+        asStarter: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+        notPlayed: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
       };
+    
+      allMatches.forEach((match) => {
+        if (!match.lineup || !match.score) return; // Verificar estructura de datos
+        
+        const isStarter = Object.values(match.lineup).includes(playerName);
+        const result =
+          match.score.home > match.score.away ? "win" :
+          match.score.home < match.score.away ? "loss" : "draw";
+    
+        const statsKey = isStarter ? "asStarter" : "notPlayed";
+        performanceStats[statsKey].matches++;
+        performanceStats[statsKey].goalsFor += match.score.home;
+        performanceStats[statsKey].goalsAgainst += match.score.away;
+        performanceStats[statsKey].shotsFor += match.shotsFor || 0;
+        performanceStats[statsKey].shotsAgainst += match.shotsAgainst || 0;
+    
+        if (result === "win") performanceStats[statsKey].wins++;
+      });
+    
+      return performanceStats;
+    };
+    
       
       
   

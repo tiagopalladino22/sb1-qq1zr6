@@ -6,6 +6,7 @@ interface PlayerStats {
   goals: number;
   assists: number;
   matches: number;
+  minutesPlayed?: number; // Nuevo campo para los minutos jugados
   yellowCards?: number;
   redCards?: number;
   positions?: {
@@ -15,9 +16,11 @@ interface PlayerStats {
       matches: number;
       yellowCards: number;
       redCards: number;
+      minutesPlayed?: number; // Minutos jugados por posición
     };
   };
 }
+
 
 interface Player {
   id?: string; // ensure each player has an ID if possible
@@ -184,41 +187,65 @@ export default function AddMatch() {
     localStorage.setItem("matches", JSON.stringify(updatedMatches));
   
     const updatedPlayers = players.map((player) => {
-      // Determinar si el jugador participó en el partido y su posición
-      const positionsPlayed = Object.entries(formationPlayers)
-        .filter(([, playerName]) => playerName === player.name)
-        .map(([position]) => position);
-  
-      if (positionsPlayed.length === 0) {
-        // Si el jugador no participó, no actualizamos sus estadísticas
-        return player;
-      }
-  
+      // Filtrar goles, asistencias y tarjetas para el jugador
       const goals = formData.scorers.filter((scorer) => scorer === player.name).length;
       const assists = formData.assists.filter((assist) => assist === player.name).length;
       const playerCards = formData.cards.filter((card) => card.player === player.name);
-  
+    
       const yellowCount = playerCards.filter((c) => c.type === "yellow").length;
       const redCount = playerCards.filter((c) => c.type === "red").length;
-  
+    
+      // Obtener estadísticas actuales o inicializarlas
       const currentStats = player.stats || {
         goals: 0,
         assists: 0,
         matches: 0,
+        minutesPlayed: 0,
         yellowCards: 0,
         redCards: 0,
-        positions: {}, // Mapa de posiciones
+        positions: {},
       };
-  
-      // Actualizar estadísticas generales y por posición
+    
+      let minutesPlayed = 90; // Por defecto juega todo el partido
       const updatedPositions = { ...currentStats.positions };
-  
+    
+      let playedAsSubstitute = false;
+    
+      // Detectar si el jugador fue suplente
+      const subIn = formData.subs.find((sub) => sub.playerIn === player.name);
+      if (subIn) {
+        playedAsSubstitute = true;
+        minutesPlayed = 90 - subIn.minute;
+    
+        // Asignar estadísticas al rol "Suplente"
+        if (!updatedPositions["Suplente"]) {
+          updatedPositions["Suplente"] = {
+            matches: 0,
+            goals: 0,
+            assists: 0,
+            yellowCards: 0,
+            redCards: 0,
+            minutesPlayed: 0,
+          };
+        }
+    
+        updatedPositions["Suplente"].matches += 1;
+        updatedPositions["Suplente"].goals += goals;
+        updatedPositions["Suplente"].assists += assists;
+        updatedPositions["Suplente"].yellowCards += yellowCount;
+        updatedPositions["Suplente"].redCards += redCount;
+        updatedPositions["Suplente"].minutesPlayed = (updatedPositions["Suplente"].minutesPlayed ?? 0) + minutesPlayed;
+
+      }
+    
+      // Si el jugador fue titular
+      const positionsPlayed = Object.entries(formationPlayers)
+        .filter(([, playerName]) => playerName === player.name)
+        .map(([position]) => position);
+    
       positionsPlayed.forEach((position) => {
-        const roleName =
-          formations
-            .find((formation) => formation.name === formData.formation)
-            ?.roles?.[position] || position; // Usar el nombre del rol o el nombre genérico
-  
+        const roleName = formations.find((f) => f.name === formData.formation)?.roles?.[position] || position;
+    
         if (!updatedPositions[roleName]) {
           updatedPositions[roleName] = {
             matches: 0,
@@ -226,18 +253,18 @@ export default function AddMatch() {
             assists: 0,
             yellowCards: 0,
             redCards: 0,
+            minutesPlayed: 0,
           };
         }
-  
-        updatedPositions[roleName] = {
-          matches: updatedPositions[roleName].matches + 1,
-          goals: updatedPositions[roleName].goals + goals,
-          assists: updatedPositions[roleName].assists + assists,
-          yellowCards: updatedPositions[roleName].yellowCards + yellowCount,
-          redCards: updatedPositions[roleName].redCards + redCount,
-        };
+    
+        updatedPositions[roleName].matches += 1;
+        updatedPositions[roleName].goals += goals;
+        updatedPositions[roleName].assists += assists;
+        updatedPositions[roleName].yellowCards += yellowCount;
+        updatedPositions[roleName].redCards += redCount;
+        updatedPositions[roleName].minutesPlayed = (updatedPositions[roleName].minutesPlayed ?? 0) + minutesPlayed;
       });
-  
+    
       return {
         ...player,
         stats: {
@@ -245,14 +272,20 @@ export default function AddMatch() {
           goals: currentStats.goals + goals,
           assists: currentStats.assists + assists,
           matches: currentStats.matches + 1,
-          yellowCards: (currentStats.yellowCards || 0) + yellowCount,
-          redCards: (currentStats.redCards || 0) + redCount,
+          minutesPlayed: (currentStats.minutesPlayed ?? 0) + minutesPlayed,
+          yellowCards: (currentStats.yellowCards ?? 0) + yellowCount,
+          redCards: (currentStats.redCards ?? 0) + redCount,
           positions: updatedPositions,
         },
       };
+      
     });
-  
+    
     localStorage.setItem("players", JSON.stringify(updatedPlayers));
+    
+
+localStorage.setItem("players", JSON.stringify(updatedPlayers));
+
   
     const updatedFormations = formations.map((formation) => {
       if (formation.name === formData.formation) {

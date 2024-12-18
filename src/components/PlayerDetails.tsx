@@ -6,9 +6,27 @@ interface PlayerStats {
   goals: number;
   assists: number;
   matches: number;
+  minutesPlayed?: number;
   yellowCards?: number;
   redCards?: number;
+  positions?: {
+    [position: string]: {
+      minutesPlayed: number;
+      goals: number;
+      assists: number;
+      yellowCards: number;
+      redCards: number;
+    };
+  };
 }
+
+
+interface Substitution {
+  playerOut: string;
+  playerIn: string;
+  minute: number;
+}
+
 
 interface Player {
   id: string;
@@ -43,7 +61,8 @@ interface Match {
   shotsFor: number;
   shotsAgainst: number;
   date: string;
-  formationUsed: string; // Agregamos esta propiedad
+  formationUsed: string; // Formación utilizada
+  subs: { playerOut: string; playerIn: string; minute: number }[]; // <-- Agregar subs aquí
 }
 
 
@@ -92,35 +111,106 @@ export default function PlayerDetails() {
   
 
   const calculatePositionsPlayed = (playerMatches: Match[], playerName: string) => {
-    const positionsMap: { [key: string]: { minutes: number; goals: number; assists: number; yellowCards: number; redCards: number } } = {};
+    const positionsMap: {
+      [key: string]: {
+        minutes: number;
+        goals: number;
+        assists: number;
+        yellowCards: number;
+        redCards: number;
+      };
+    } = {};
   
     playerMatches.forEach((match) => {
-      const formation = formations.find((f) => f.name === match.formationUsed); // Encontrar la formación usada
+      // Buscar sustituciones
+      const subIn = match.subs?.find((sub) => sub.playerIn === playerName);
+      const subOut = match.subs?.find((sub) => sub.playerOut);
   
-      for (const [position, name] of Object.entries(match.formationPlayers)) {
-        if (name === playerName) {
-          const roleName = formation?.roles[position] || position; // Usar roles o posición genérica
+      let assignedPosition = null;
   
-          if (!positionsMap[roleName]) {
-            positionsMap[roleName] = { minutes: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 };
+      // Si el jugador entró como suplente
+      if (subIn) {
+        // Buscar la posición del jugador que salió
+        assignedPosition = Object.entries(match.formationPlayers).find(
+          ([, name]) => name === subOut?.playerOut
+        )?.[0]; // Primera posición encontrada
+  
+        if (assignedPosition) {
+          const minutesPlayed = 90 - subIn.minute;
+  
+          if (!positionsMap[assignedPosition]) {
+            positionsMap[assignedPosition] = {
+              minutes: 0,
+              goals: 0,
+              assists: 0,
+              yellowCards: 0,
+              redCards: 0,
+            };
           }
   
-          positionsMap[roleName].minutes += 90; // Assuming full match
-          positionsMap[roleName].goals += match.scorers.filter((scorer) => scorer === playerName).length;
-          positionsMap[roleName].assists += match.assists.filter((assist) => assist === playerName).length;
-          positionsMap[roleName].yellowCards += match.cards.filter((card) => card.player === playerName && card.type === "yellow").length;
-          positionsMap[roleName].redCards += match.cards.filter((card) => card.player === playerName && card.type === "red").length;
+          positionsMap[assignedPosition].minutes += minutesPlayed;
+          positionsMap[assignedPosition].goals += match.scorers.filter((s) => s === playerName).length;
+          positionsMap[assignedPosition].assists += match.assists.filter((a) => a === playerName).length;
+          positionsMap[assignedPosition].yellowCards += match.cards.filter(
+            (c) => c.player === playerName && c.type === "yellow"
+          ).length;
+          positionsMap[assignedPosition].redCards += match.cards.filter(
+            (c) => c.player === playerName && c.type === "red"
+          ).length;
         }
       }
+  
+      // Si el jugador empezó como titular
+      Object.entries(match.formationPlayers).forEach(([position, name]) => {
+        if (name === playerName) {
+          const minutesPlayed = subOut?.playerOut === playerName ? subOut.minute : 90;
+  
+          if (!positionsMap[position]) {
+            positionsMap[position] = {
+              minutes: 0,
+              goals: 0,
+              assists: 0,
+              yellowCards: 0,
+              redCards: 0,
+            };
+          }
+  
+          positionsMap[position].minutes += minutesPlayed;
+          positionsMap[position].goals += match.scorers.filter((s) => s === playerName).length;
+          positionsMap[position].assists += match.assists.filter((a) => a === playerName).length;
+          positionsMap[position].yellowCards += match.cards.filter(
+            (c) => c.player === playerName && c.type === "yellow"
+          ).length;
+          positionsMap[position].redCards += match.cards.filter(
+            (c) => c.player === playerName && c.type === "red"
+          ).length;
+        }
+      });
     });
   
-    setPositionsPlayed(
-      Object.entries(positionsMap).map(([position, stats]) => ({
-        position,
-        ...stats,
-      }))
-    );
+    const positions = Object.entries(positionsMap).map(([position, stats]) => ({
+      position,
+      ...stats,
+    }));
+  
+    console.log("Final Positions Map:", positions);
+    setPositionsPlayed(positions);
   };
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -133,38 +223,50 @@ export default function PlayerDetails() {
       asSubstitute: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
       notPlayed: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
     };
-
+  
     allMatches.forEach((match) => {
       const isStarter = Object.values(match.formationPlayers).includes(playerName);
-      const isSubstitute = false; // Update logic if substitutions are tracked
-      const result = match.score.home > match.score.away ? "win" : match.score.home < match.score.away ? "loss" : "draw";
-
+      const isSubstitute = match.subs.some((sub) => sub.playerIn === playerName);
+  
+      // Calcular el resultado del partido
+      const result =
+        match.score.home > match.score.away
+          ? "win"
+          : match.score.home < match.score.away
+          ? "loss"
+          : "draw";
+  
       if (isStarter) {
+        // Estadísticas como titular
         performanceStats.asStarter.matches++;
         if (result === "win") performanceStats.asStarter.wins++;
+  
         performanceStats.asStarter.goalsFor += match.score.home;
         performanceStats.asStarter.goalsAgainst += match.score.away;
         performanceStats.asStarter.shotsFor += match.shotsFor;
         performanceStats.asStarter.shotsAgainst += match.shotsAgainst;
       } else if (isSubstitute) {
+        // Estadísticas como suplente
         performanceStats.asSubstitute.matches++;
         if (result === "win") performanceStats.asSubstitute.wins++;
+  
         performanceStats.asSubstitute.goalsFor += match.score.home;
         performanceStats.asSubstitute.goalsAgainst += match.score.away;
         performanceStats.asSubstitute.shotsFor += match.shotsFor;
         performanceStats.asSubstitute.shotsAgainst += match.shotsAgainst;
       } else {
+        // No jugó
         performanceStats.notPlayed.matches++;
-        if (result === "win") performanceStats.notPlayed.wins++;
         performanceStats.notPlayed.goalsFor += match.score.home;
         performanceStats.notPlayed.goalsAgainst += match.score.away;
         performanceStats.notPlayed.shotsFor += match.shotsFor;
         performanceStats.notPlayed.shotsAgainst += match.shotsAgainst;
       }
     });
-
+  
     setPerformance(performanceStats);
   };
+  
 
   if (!player) {
     return (
@@ -254,28 +356,63 @@ export default function PlayerDetails() {
               </tr>
             </thead>
             <tbody>
-              {positionsPlayed.length > 0 ? (
-                positionsPlayed.map((pos, index) => (
-                  <tr key={index} className="hover:bg-gray-100">
-                    <td className="p-4 text-gray-700">{pos.position}</td>
-                    <td className="p-4 text-gray-700">{pos.minutes}</td>
-                    <td className="p-4 text-gray-700">{pos.goals}</td>
-                    <td className="p-4 text-gray-700">{pos.assists}</td>
-                    <td className="p-4 text-gray-700">{pos.yellowCards}</td>
-                    <td className="p-4 text-gray-700">{pos.redCards}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="p-4 text-center text-gray-500">
-                    No hay informacion disponible.
-                  </td>
-                </tr>
-              )}
-            </tbody>
+  {positionsPlayed.length > 0 ? (
+    positionsPlayed.map((pos, index) => (
+      <tr key={index} className="hover:bg-gray-100">
+        <td className="p-4 text-gray-700">{pos.position}</td>
+        <td className="p-4 text-gray-700">{pos.minutes}</td>
+        <td className="p-4 text-gray-700">{pos.goals}</td>
+        <td className="p-4 text-gray-700">{pos.assists}</td>
+        <td className="p-4 text-gray-700">{pos.yellowCards}</td>
+        <td className="p-4 text-gray-700">{pos.redCards}</td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td colSpan={6} className="p-4 text-center text-gray-500">
+        No hay información disponible.
+      </td>
+    </tr>
+  )}
+</tbody>
+
           </table>
         </div>
       </div>
+
+      <div className="bg-white rounded-xl border-2 border-[#218b21] shadow-sm p-6">
+  <h3 className="text-lg font-semibold text-gray-900 mb-4">Estadísticas Como Suplente</h3>
+  {player.stats?.positions?.["Suplente"] ? (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse bg-white shadow-sm rounded-lg">
+        <thead className="bg-black text-white">
+          <tr>
+            <th className="p-4 text-left font-semibold">Posicion</th>
+            <th className="p-4 text-left font-semibold">Minutos Jugados</th>
+            <th className="p-4 text-left font-semibold">Goles</th>
+            <th className="p-4 text-left font-semibold">Asistencias</th>
+            <th className="p-4 text-left font-semibold">Amarillas</th>
+            <th className="p-4 text-left font-semibold">Rojas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="hover:bg-gray-100">
+            <td className="p-4 text-gray-700">Suplente</td>
+            <td className="p-4 text-gray-700">{player.stats.positions["Suplente"].minutesPlayed || 0}</td>
+            <td className="p-4 text-gray-700">{player.stats.positions["Suplente"].goals || 0}</td>
+            <td className="p-4 text-gray-700">{player.stats.positions["Suplente"].assists || 0}</td>
+            <td className="p-4 text-gray-700">{player.stats.positions["Suplente"].yellowCards || 0}</td>
+            <td className="p-4 text-gray-700">{player.stats.positions["Suplente"].redCards || 0}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <p className="text-gray-500">No hay estadísticas como suplente disponibles.</p>
+  )}
+</div>
+
+
 
       <div className="bg-white rounded-xl border-2 border-[#218b21] shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Rendimiento del equipo</h3>

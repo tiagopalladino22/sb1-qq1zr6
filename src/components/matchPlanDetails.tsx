@@ -15,9 +15,6 @@ interface Formation {
   defenderLines: number[];
   midfielderLines: number[];
   forwardLines: number[];
-  gamesPlayed: number;
-  goalsFor: number;
-  goalsAgainst: number;
 }
 
 interface Player {
@@ -41,12 +38,12 @@ export default function MatchPlanDetails() {
   const [rivalNotes, setRivalNotes] = useState<string[]>([]);
 
   useEffect(() => {
-    const storedMatches: MatchPlan[] = JSON.parse(localStorage.getItem("matches") || "[]");
+    const storedPlans: MatchPlan[] = JSON.parse(localStorage.getItem("matchPlans") || "[]");
     const storedFormations: Formation[] = JSON.parse(localStorage.getItem("formations") || "[]");
     const storedPlayers: Player[] = JSON.parse(localStorage.getItem("players") || "[]");
     const storedRivals: Rival[] = JSON.parse(localStorage.getItem("rivals") || "[]");
 
-    const plan = storedMatches.find((p) => p.id === id);
+    const plan = storedPlans.find((p) => p.id === id);
     if (plan) {
       setMatchPlan(plan);
       const currentFormation = storedFormations.find((f) => f.name === plan.formation);
@@ -64,19 +61,19 @@ export default function MatchPlanDetails() {
 
   const renderFormationPreview = () => {
     if (!formation) return <p className="text-gray-500">Formación no disponible.</p>;
-  
-    let playerIndex = 2; // Comenzar después del arquero (posición 1)
-  
+
+    let playerIndex = 2; // Comienza después del arquero (posición 1)
+
     const renderLine = (count: number, type: string) => (
       <div key={type} className="flex justify-center space-x-4 mb-4">
         {Array.from({ length: count }).map((_, i) => {
           const positionKey = `Posición ${playerIndex}`;
-          const playerName = matchPlan?.lineup[positionKey] || "Vacante";
+          const playerName = matchPlan?.lineup?.[positionKey] || "Vacante";
           const player = players.find((p) => p.name === playerName);
           const jerseyNumber = player?.number || playerIndex;
-  
-          playerIndex++; // Incrementar índice para las siguientes posiciones
-  
+
+          playerIndex++;
+
           return (
             <div key={i} className="flex flex-col items-center space-y-1">
               <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
@@ -88,23 +85,23 @@ export default function MatchPlanDetails() {
         })}
       </div>
     );
-  
+
     return (
       <div className="bg-gray-100 p-4 rounded-lg">
         <h3 className="text-lg font-semibold mb-4">Dibujo Táctico</h3>
-        
-        {/* Renderizar solo el arquero (posición 1) */}
+
+        {/* Renderizar el arquero (posición 1) */}
         <div className="flex justify-center mb-6">
           <div className="flex flex-col items-center space-y-1">
             <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
               1
             </div>
             <span className="text-xs text-gray-700">
-              {matchPlan?.lineup["Posición 1"] || "Arquero"}
+              {matchPlan?.lineup?.["Posición 1"] || "Arquero"}
             </span>
           </div>
         </div>
-  
+
         {/* Renderizar las demás líneas */}
         {formation.defenderLines.map((count, index) => renderLine(count, "Defensa"))}
         {formation.midfielderLines.map((count, index) => renderLine(count, "Mediocampo"))}
@@ -112,12 +109,35 @@ export default function MatchPlanDetails() {
       </div>
     );
   };
-  
-  
 
-  if (!matchPlan) {
-    return <p className="text-center text-gray-500">Cargando detalles...</p>;
-  }
+  const renderChangeSuggestions = () => {
+    if (!players || !matchPlan) return null;
+
+    const starters = Object.values(matchPlan.lineup);
+    const substitutes = players.filter((player) => !starters.includes(player.name));
+
+    const topSubstitutes = substitutes
+      .sort((a, b) => b.number - a.number) // Ordenar según algún criterio
+      .slice(0, 5); // Mostrar las 5 mejores sugerencias
+
+    return (
+      <div className="bg-gray-100 p-4 rounded-lg mt-6">
+        <h3 className="text-lg font-semibold mb-4">Sugerencias de Cambios</h3>
+        {topSubstitutes.length > 0 ? (
+          <ul className="space-y-2">
+            {topSubstitutes.map((sub) => (
+              <li key={sub.name} className="flex justify-between items-center">
+                <span>{sub.name} ({sub.position})</span>
+                <span className="text-gray-600">N° {sub.number}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500">No hay jugadores disponibles para sugerir cambios.</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 bg-white shadow-sm border-2 border-[#218b21] rounded-xl">
@@ -133,7 +153,7 @@ export default function MatchPlanDetails() {
 
       <div className="space-y-4">
         <p>
-          <strong className="text-black">Rival:</strong> {matchPlan.rival}
+          <strong className="text-black">Rival:</strong> {matchPlan?.rival}
         </p>
         {rivalNotes.length > 0 && (
           <div>
@@ -146,15 +166,8 @@ export default function MatchPlanDetails() {
           </div>
         )}
         <p>
-          <strong className="text-black">Formación:</strong> {matchPlan.formation}
+          <strong className="text-black">Formación:</strong> {matchPlan?.formation}
         </p>
-        {formation && (
-          <p>
-            <strong className="text-black">Récord:</strong> Partidos Jugados:{" "}
-            {formation.gamesPlayed}, Goles a Favor: {formation.goalsFor}, Goles en Contra:{" "}
-            {formation.goalsAgainst}
-          </p>
-        )}
       </div>
 
       {renderFormationPreview()}
@@ -162,14 +175,22 @@ export default function MatchPlanDetails() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-gray-800">Alineación</h2>
         <ul className="space-y-2">
-          {Object.entries(matchPlan.lineup).map(([roles, playerName]) => (
-            <li key={roles} className="flex justify-between">
-              <span className="text-gray-600">{roles}</span>
-              <span className="font-medium">{playerName}</span>
-            </li>
-          ))}
+          {Object.entries(matchPlan?.lineup || {}).map(([role, playerName]) => {
+            const player = players.find((p) => p.name === playerName);
+            return (
+              <li key={role} className="flex justify-between">
+                <span className="text-gray-600">{role}</span>
+                <span className="font-medium">
+                  {playerName} {player ? `(#${player.number})` : ""}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </div>
+
+      {/* Sugerencias de Cambios */}
+      {renderChangeSuggestions()}
     </div>
   );
 }
