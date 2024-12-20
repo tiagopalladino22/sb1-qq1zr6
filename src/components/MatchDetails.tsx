@@ -38,14 +38,20 @@ interface Substitution {
   minute: number;
 }
 
+interface Scorer {
+  player: string;
+  minute: number;
+}
+
 interface Match {
   id: string;
   rival: string;
   date: string;
+  location: 'local' | 'visitor'; // Nuevo campo para local/visitante
   score: Score;
   formation: string;
   formationPlayers: { [position: string]: string };
-  scorers: string[];
+  scorers: Scorer[];
   assists: string[];
   cards: CardInfo[];
   shotsFor: number;
@@ -85,15 +91,18 @@ export default function MatchDetails() {
     const player = findPlayerData(playerName);
     if (!player) return null;
 
-    const goals = match.scorers.filter((scorer) => scorer === playerName).length;
+    const goals = match.scorers
+      .filter((scorer) => scorer.player === playerName)
+      .map((scorer) => `${scorer.minute}'`);
+
     const assists = match.assists.filter((assist) => assist === playerName).length;
     const cards = match.cards.filter((card) => card.player === playerName);
     const subsIn = match.subs.find((sub) => sub.playerIn === playerName);
     const subsOut = match.subs.find((sub) => sub.playerOut === playerName);
 
     let nameDisplay = playerName;
-    if (subsOut) nameDisplay += ` ↩(${subsOut.minute}')`;
-    if (subsIn) nameDisplay += ` ↪(${subsIn.minute}')`;
+    if (subsOut) nameDisplay += ` ↩ (${subsOut.minute}')`;
+    if (subsIn) nameDisplay += ` ↪ (${subsIn.minute}')`;
 
     return (
       <tr key={playerName} className="border-b">
@@ -102,9 +111,9 @@ export default function MatchDetails() {
         <td className="px-2 py-1 text-sm">
           {nameDisplay}{' '}
           <span>
-            {Array(goals).fill('⚽').join(' ')}
+            {goals.length > 0 && `⚽ (${goals.join(', ')})`}
             {Array(assists).fill('🅰').join(' ')}
-            {cards.map((card, idx) =>
+            {cards.map((card) =>
               card.type === 'yellow' ? '🟨' : '🟥'
             )}
           </span>
@@ -153,6 +162,12 @@ export default function MatchDetails() {
         <div>
           <p className="text-sm text-gray-600">Rival</p>
           <p className="text-xl font-bold text-gray-900">{match.rival}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-600">Local/Visitante</p>
+          <p className="text-xl font-bold text-gray-900">
+            {match.location === 'local' ? 'Local' : 'Visitante'}
+          </p>
         </div>
         <div>
           <p className="text-sm text-gray-600">Resultado</p>
@@ -206,6 +221,7 @@ export default function MatchDetails() {
     </div>
   );
 }
+
 
 
 

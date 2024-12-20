@@ -14,10 +14,12 @@ import AddMatch from './components/AddMatch';
 import Matchs from './components/Matchs';
 import MatchDetails from './components/MatchDetails';
 import PlayerDetails from './components/PlayerDetails';
-import RivalDetails from './components/rivalDetails';
+import RivalDetails from './components/RivalDetails';
 import MatchPlanning from './components/matchPlanning';
 import MatchPlans from './components/matchsPlans';
 import MatchPlanDetails from './components/matchPlanDetails';
+import InsightsPlus from './components/insightsPlus';
+
 
 function App() {
   return (
@@ -39,6 +41,7 @@ function App() {
               <Route path="/match-plans" element={<MatchPlans />} />
               <Route path="/match-planning" element={<MatchPlanning />} />
               <Route path="/matchs" element={<Matchs />} />
+              <Route path="/insights" element={<InsightsPlus />} />
               <Route path="/formation-details/:id" element={<FormationDetails />} />
               <Route path="/match-details/:id" element={<MatchDetails />} />
               <Route path="/match-plan-details/:id" element={<MatchPlanDetails />} />

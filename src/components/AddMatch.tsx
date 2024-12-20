@@ -108,7 +108,7 @@ export default function AddMatch() {
     opponent: string;
     date: string;
     score: { home: number; away: number };
-    scorers: string[];
+    scorers: { player: string; minute: number }[]; // Cambiado para incluir minutos
     assists: string[];
     formation: string;
     rival: string;
@@ -116,20 +116,105 @@ export default function AddMatch() {
     shotsFor: number;
     shotsAgainst: number;
     subs: Substitution[];
+    location: "home" | "away"; // Nuevo campo para local/visitante
   }>({
     id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
-    opponent: '',
-    date: '',
+    opponent: "",
+    date: "",
     score: { home: 0, away: 0 },
-    scorers: [''],
-    assists: [''],
-    formation: '',
-    rival: '',
+    scorers: [{ player: "", minute: 0 }],
+    assists: [""],
+    formation: "",
+    rival: "",
     cards: [],
     shotsFor: 0,
     shotsAgainst: 0,
     subs: [],
+    location: "home", // Valor por defecto
   });
+  
+  // Campo para seleccionar local o visitante
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
+    <select
+      value={formData.location}
+      onChange={(e) =>
+        setFormData((prev) => ({ ...prev, location: e.target.value as "home" | "away" }))
+      }
+      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+      required
+    >
+      <option value="home">Local</option>
+      <option value="away">Visitante</option>
+    </select>
+  </div>;
+  
+  // Sección de goleadores con minutos
+  <div>
+    <label className="block text-sm font-medium text-gray-700">Goles</label>
+    {formData.scorers.map((scorer, index) => (
+      <div key={index} className="flex items-center space-x-2 my-2">
+        <select
+          value={scorer.player}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              scorers: prev.scorers.map((s, i) =>
+                i === index ? { ...s, player: e.target.value } : s
+              ),
+            }))
+          }
+          className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          <option value="">Seleccionar Jugador</option>
+          {players.map((player) => (
+            <option key={player.id} value={player.name}>
+              {player.number} - {player.name}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          value={scorer.minute}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              scorers: prev.scorers.map((s, i) =>
+                i === index ? { ...s, minute: parseInt(e.target.value) || 0 } : s
+              ),
+            }))
+          }
+          placeholder="Minuto"
+          className="w-20 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+        />
+        <button
+          type="button"
+          onClick={() =>
+            setFormData((prev) => ({
+              ...prev,
+              scorers: prev.scorers.filter((_, i) => i !== index),
+            }))
+          }
+          className="text-red-500 hover:text-red-700"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+    ))}
+    <button
+      type="button"
+      onClick={() =>
+        setFormData((prev) => ({
+          ...prev,
+          scorers: [...prev.scorers, { player: "", minute: 0 }],
+        }))
+      }
+      className="text-indigo-500 hover:underline text-sm"
+    >
+      + Agregar Goleador
+    </button>
+  </div>;
+  
 
   useEffect(() => {
 
@@ -188,10 +273,10 @@ export default function AddMatch() {
   
     const updatedPlayers = players.map((player) => {
       // Filtrar goles, asistencias y tarjetas para el jugador
-      const goals = formData.scorers.filter((scorer) => scorer === player.name).length;
+      const goals = formData.scorers.filter((scorer) => scorer.player === player.name).length; // Cambiado para acceder a `scorer.player`
       const assists = formData.assists.filter((assist) => assist === player.name).length;
       const playerCards = formData.cards.filter((card) => card.player === player.name);
-    
+      
       const yellowCount = playerCards.filter((c) => c.type === "yellow").length;
       const redCount = playerCards.filter((c) => c.type === "red").length;
     
@@ -484,6 +569,21 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
             ))}
           </select>
         </div>
+        {/*Campo para seleccionar local o visitante*/}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
+          <select
+            value={formData.location}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, location: e.target.value as "home" | "away" }))
+            }
+            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+            required
+          >
+            <option value="home">Local</option>
+            <option value="away">Visitante</option>
+          </select>
+        </div>
         {/*Match Score*/}
         <div className="grid grid-cols-2 gap-6">
           <div>
@@ -583,8 +683,15 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
           {formData.scorers.map((scorer, index) => (
             <div key={index} className="flex items-center space-x-2 my-2">
               <select
-                value={scorer}
-                onChange={(e) => updateField('scorers', index, e.target.value)}
+                value={scorer.player}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    scorers: prev.scorers.map((s, i) =>
+                      i === index ? { ...s, player: e.target.value } : s
+                    ),
+                  }))
+                }
                 className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="">Seleccionar Jugador</option>
@@ -594,17 +701,45 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
                   </option>
                 ))}
               </select>
-              <button type="button" onClick={() => removeField('scorers', index)}>
-                <X className="h-5 w-5 text-red-500" />
+              <input
+                type="number"
+                value={scorer.minute}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    scorers: prev.scorers.map((s, i) =>
+                      i === index ? { ...s, minute: parseInt(e.target.value) || 0 } : s
+                    ),
+                  }))
+                }
+                placeholder="Minuto"
+                className="w-20 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    scorers: prev.scorers.filter((_, i) => i !== index),
+                  }))
+                }
+                className="text-red-500 hover:text-red-700"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
           ))}
           <button
             type="button"
-            onClick={() => addField('scorers')}
+            onClick={() =>
+              setFormData((prev) => ({
+                ...prev,
+                scorers: [...prev.scorers, { player: "", minute: 0 }],
+              }))
+            }
             className="text-indigo-500 hover:underline text-sm"
           >
-            + Agregar Goleadores
+            + Agregar Goleador
           </button>
         </div>
 

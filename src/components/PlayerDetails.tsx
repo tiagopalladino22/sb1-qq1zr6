@@ -83,10 +83,38 @@ export default function PlayerDetails() {
     }[]
   >([]);
   const [performance, setPerformance] = useState({
-    asStarter: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
-    asSubstitute: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
-    notPlayed: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+    asStarter: {
+      matches: 0,
+      wins: 0,
+      draws: 0, // <-- Agregado
+      losses: 0, // <-- Agregado
+      goalsFor: 0,
+      goalsAgainst: 0,
+      shotsFor: 0,
+      shotsAgainst: 0,
+    },
+    asSubstitute: {
+      matches: 0,
+      wins: 0,
+      draws: 0, // <-- Agregado
+      losses: 0, // <-- Agregado
+      goalsFor: 0,
+      goalsAgainst: 0,
+      shotsFor: 0,
+      shotsAgainst: 0,
+    },
+    notPlayed: {
+      matches: 0,
+      wins: 0,
+      draws: 0, // <-- Agregado
+      losses: 0, // <-- Agregado
+      goalsFor: 0,
+      goalsAgainst: 0,
+      shotsFor: 0,
+      shotsAgainst: 0,
+    },
   });
+  
 
   useEffect(() => {
     const storedPlayers: Player[] = JSON.parse(localStorage.getItem("players") || "[]");
@@ -219,9 +247,9 @@ export default function PlayerDetails() {
 
   const calculatePerformance = (allMatches: Match[], playerName: string) => {
     const performanceStats = {
-      asStarter: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
-      asSubstitute: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
-      notPlayed: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+      asStarter: { matches: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+      asSubstitute: { matches: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+      notPlayed: { matches: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
     };
   
     allMatches.forEach((match) => {
@@ -240,6 +268,8 @@ export default function PlayerDetails() {
         // Estadísticas como titular
         performanceStats.asStarter.matches++;
         if (result === "win") performanceStats.asStarter.wins++;
+        if (result === "draw") performanceStats.asStarter.draws++;
+        if (result === "loss") performanceStats.asStarter.losses++;
   
         performanceStats.asStarter.goalsFor += match.score.home;
         performanceStats.asStarter.goalsAgainst += match.score.away;
@@ -249,6 +279,8 @@ export default function PlayerDetails() {
         // Estadísticas como suplente
         performanceStats.asSubstitute.matches++;
         if (result === "win") performanceStats.asSubstitute.wins++;
+        if (result === "draw") performanceStats.asSubstitute.draws++;
+        if (result === "loss") performanceStats.asSubstitute.losses++;
   
         performanceStats.asSubstitute.goalsFor += match.score.home;
         performanceStats.asSubstitute.goalsAgainst += match.score.away;
@@ -257,6 +289,10 @@ export default function PlayerDetails() {
       } else {
         // No jugó
         performanceStats.notPlayed.matches++;
+        if (result === "win") performanceStats.notPlayed.wins++;
+        if (result === "draw") performanceStats.notPlayed.draws++;
+        if (result === "loss") performanceStats.notPlayed.losses++;
+  
         performanceStats.notPlayed.goalsFor += match.score.home;
         performanceStats.notPlayed.goalsAgainst += match.score.away;
         performanceStats.notPlayed.shotsFor += match.shotsFor;
@@ -266,6 +302,7 @@ export default function PlayerDetails() {
   
     setPerformance(performanceStats);
   };
+  
   
 
   if (!player) {
@@ -414,20 +451,21 @@ export default function PlayerDetails() {
 
 
 
-      <div className="bg-white rounded-xl border-2 border-[#218b21] shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Rendimiento del equipo</h3>
-        <ul className="space-y-2 text-gray-700">
-          <li>
-            <strong>Como titular:</strong> {performance.asStarter.matches} partidos, {performance.asStarter.wins} victorias, {performance.asStarter.goalsFor} goles a favor, {performance.asStarter.goalsAgainst} goles en contra.
-          </li>
-          <li>
-            <strong>Como suplente:</strong> {performance.asSubstitute.matches} partidos, {performance.asSubstitute.wins} victorias, {performance.asSubstitute.goalsFor} goles a favor, {performance.asSubstitute.goalsAgainst} goles en contra.
-          </li>
-          <li>
-            <strong>Sin Jugar:</strong> {performance.notPlayed.matches} partidos, {performance.notPlayed.wins} victorias, {performance.notPlayed.goalsFor} goles a favor, {performance.notPlayed.goalsAgainst} goles en contra.
-          </li>
-        </ul>
-      </div>
+<div className="bg-white rounded-xl border-2 border-[#218b21] shadow-sm p-6">
+  <h3 className="text-lg font-semibold text-gray-900 mb-4">Rendimiento del equipo</h3>
+  <ul className="space-y-2 text-gray-700">
+    <li>
+      <strong>Como titular:</strong> {performance.asStarter.matches} partidos, {performance.asStarter.wins} victorias, {performance.asStarter.draws} empates, {performance.asStarter.losses} derrotas, {performance.asStarter.goalsFor} goles a favor, {performance.asStarter.goalsAgainst} goles en contra.
+    </li>
+    <li>
+      <strong>Como suplente:</strong> {performance.asSubstitute.matches} partidos, {performance.asSubstitute.wins} victorias, {performance.asSubstitute.draws} empates, {performance.asSubstitute.losses} derrotas, {performance.asSubstitute.goalsFor} goles a favor, {performance.asSubstitute.goalsAgainst} goles en contra.
+    </li>
+    <li>
+      <strong>Sin Jugar:</strong> {performance.notPlayed.matches} partidos, {performance.notPlayed.wins} victorias, {performance.notPlayed.draws} empates, {performance.notPlayed.losses} derrotas, {performance.notPlayed.goalsFor} goles a favor, {performance.notPlayed.goalsAgainst} goles en contra.
+    </li>
+  </ul>
+</div>
+
     </div>
   );
 }

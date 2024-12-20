@@ -65,17 +65,17 @@ export default function MatchPlanDetails() {
     let playerIndex = 2; // Comienza después del arquero (posición 1)
 
     const renderLine = (count: number, type: string) => (
-      <div key={type} className="flex justify-center space-x-4 mb-4">
+      <div key={`${type}-${playerIndex}`} className="flex justify-center space-x-4 mb-4">
         {Array.from({ length: count }).map((_, i) => {
           const positionKey = `Posición ${playerIndex}`;
           const playerName = matchPlan?.lineup?.[positionKey] || "Vacante";
           const player = players.find((p) => p.name === playerName);
           const jerseyNumber = player?.number || playerIndex;
-
+    
           playerIndex++;
-
+    
           return (
-            <div key={i} className="flex flex-col items-center space-y-1">
+            <div key={`${type}-${playerIndex}-${i}`} className="flex flex-col items-center space-y-1">
               <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                 {jerseyNumber}
               </div>
@@ -85,6 +85,7 @@ export default function MatchPlanDetails() {
         })}
       </div>
     );
+    
 
     return (
       <div className="bg-gray-100 p-4 rounded-lg">

@@ -34,6 +34,7 @@ interface Match {
   id: string;
   rival: string;
   formation: string;
+  formationPlayers: { [position: string]: string };
   lineup: { [position: string]: string };
   score: {
     home: number;
@@ -78,8 +79,8 @@ const navigate = useNavigate(); // Para redirigir después de guardar
 
     
     // Cargar datos iniciales de localStorage
-    const storedPlans = JSON.parse(localStorage.getItem("matchPlans") || "[]");
-    setAllMatches(storedPlans);
+    const storedMatches = JSON.parse(localStorage.getItem("matches") || "[]");
+  setAllMatches(storedMatches);
 
 
     const storedFormations = JSON.parse(
@@ -403,32 +404,68 @@ function RivalSelector({
     
   
     // Función para calcular rendimiento
-    const calculatePerformance = (playerName: string) => {
+    const calculatePerformance = (allMatches: Match[], playerName: string) => {
       const performanceStats = {
-        asStarter: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
-        notPlayed: { matches: 0, wins: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+        asStarter: { matches: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+        asSubstitute: { matches: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
+        notPlayed: { matches: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, shotsFor: 0, shotsAgainst: 0 },
       };
     
       allMatches.forEach((match) => {
-        if (!match.lineup || !match.score) return; // Verificar estructura de datos
-        
-        const isStarter = Object.values(match.lineup).includes(playerName);
+        const isStarter = Object.values(match.formationPlayers).includes(playerName);
+        const isSubstitute = match.subs.some((sub) => sub.playerIn === playerName);
+    
+        // Calcular el resultado del partido
         const result =
-          match.score.home > match.score.away ? "win" :
-          match.score.home < match.score.away ? "loss" : "draw";
+          match.score.home > match.score.away
+            ? "win"
+            : match.score.home < match.score.away
+            ? "loss"
+            : "draw";
     
-        const statsKey = isStarter ? "asStarter" : "notPlayed";
-        performanceStats[statsKey].matches++;
-        performanceStats[statsKey].goalsFor += match.score.home;
-        performanceStats[statsKey].goalsAgainst += match.score.away;
-        performanceStats[statsKey].shotsFor += match.shotsFor || 0;
-        performanceStats[statsKey].shotsAgainst += match.shotsAgainst || 0;
+        if (isStarter) {
+          // Estadísticas como titular
+          performanceStats.asStarter.matches++;
+          if (result === "win") performanceStats.asStarter.wins++;
+          if (result === "draw") performanceStats.asStarter.draws++;
+          if (result === "loss") performanceStats.asStarter.losses++;
     
-        if (result === "win") performanceStats[statsKey].wins++;
+          performanceStats.asStarter.goalsFor += match.score.home;
+          performanceStats.asStarter.goalsAgainst += match.score.away;
+          performanceStats.asStarter.shotsFor += match.shotsFor;
+          performanceStats.asStarter.shotsAgainst += match.shotsAgainst;
+        } else if (isSubstitute) {
+          // Estadísticas como suplente
+          performanceStats.asSubstitute.matches++;
+          if (result === "win") performanceStats.asSubstitute.wins++;
+          if (result === "draw") performanceStats.asSubstitute.draws++;
+          if (result === "loss") performanceStats.asSubstitute.losses++;
+    
+          performanceStats.asSubstitute.goalsFor += match.score.home;
+          performanceStats.asSubstitute.goalsAgainst += match.score.away;
+          performanceStats.asSubstitute.shotsFor += match.shotsFor;
+          performanceStats.asSubstitute.shotsAgainst += match.shotsAgainst;
+        } else {
+          // No jugó
+          performanceStats.notPlayed.matches++;
+          if (result === "win") performanceStats.notPlayed.wins++;
+          if (result === "draw") performanceStats.notPlayed.draws++;
+          if (result === "loss") performanceStats.notPlayed.losses++;
+    
+          performanceStats.notPlayed.goalsFor += match.score.home;
+          performanceStats.notPlayed.goalsAgainst += match.score.away;
+          performanceStats.notPlayed.shotsFor += match.shotsFor;
+          performanceStats.notPlayed.shotsAgainst += match.shotsAgainst;
+        }
       });
     
       return performanceStats;
     };
+    
+    
+    
+    
+    
     
       
       
@@ -460,7 +497,10 @@ function RivalSelector({
             ? players.find((p) => p.name === comparisonPlayer[position])
             : null;
   
-          const performanceStats = selectedPlayer ? calculatePerformance(selectedPlayer) : null;
+            const performanceStats = selectedPlayer
+            ? calculatePerformance(allMatches, selectedPlayer)
+            : null;
+          
   
           return (
             <div key={index} className="mb-6">
@@ -511,10 +551,11 @@ function RivalSelector({
 
       {/* Rendimiento del equipo con el jugador */}
       {performanceStats && (
-        <div className="flex-1 ">
-          <h4 className="text-lg font-bold text-black mb-2">
-            Rendimiento del equipo con {playerStats.name}
-          </h4>
+        <div className="flex-1">
+        <h4 className="text-lg font-bold text-black mb-2">
+          Rendimiento del equipo con {playerStats.name}
+        </h4>
+        {performanceStats ? (
           <ul className="space-y-2">
             <li>
               <strong>Partidos como titular:</strong> {performanceStats.asStarter.matches}
@@ -523,13 +564,23 @@ function RivalSelector({
               <strong>Victorias:</strong> {performanceStats.asStarter.wins}
             </li>
             <li>
+              <strong>Empates:</strong> {performanceStats.asStarter.draws}
+            </li>
+            <li>
+              <strong>Derrotas:</strong> {performanceStats.asStarter.losses}
+            </li>
+            <li>
               <strong>Goles a Favor:</strong> {performanceStats.asStarter.goalsFor}
             </li>
             <li>
               <strong>Goles en Contra:</strong> {performanceStats.asStarter.goalsAgainst}
             </li>
           </ul>
-        </div>
+        ) : (
+          <p className="text-gray-500 italic">No hay datos de rendimiento disponibles</p>
+        )}
+      </div>
+      
       )}
     </div>
   ) : (
