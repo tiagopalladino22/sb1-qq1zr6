@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import ReactMarkdown from "react-markdown";
 
 const openai = new OpenAI({
-  apiKey: "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",
+  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true,
 });
 
