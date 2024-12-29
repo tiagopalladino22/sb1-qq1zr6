@@ -1,9 +1,10 @@
 import React from 'react';
-import { Users, Layout, Shield, LineChart, Medal, Notebook } from 'lucide-react';
+import { Users, Layout, Shield, Plus, LineChart, Medal, Notebook } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const menuItems = [
   { icon: LineChart, label: 'Dashboard', path: '/' },
+  { icon: Plus, label: 'Insights', path: '/insights' },
   { icon: Notebook, label: 'Planificación', path: '/match-plans' },
   { icon: Users, label: 'Jugadores', path: '/players' },
   { icon: Layout, label: 'Formaciones', path: '/formations' },

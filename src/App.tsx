@@ -19,6 +19,7 @@ import MatchPlanning from './components/matchPlanning';
 import MatchPlans from './components/matchsPlans';
 import MatchPlanDetails from './components/matchPlanDetails';
 import InsightsPlus from './components/insightsPlus';
+import SavedInsights from './components/savedInsights';
 
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
               <Route path="/match-plan-details/:id" element={<MatchPlanDetails />} />
               <Route path="/player/:id" element={<PlayerDetails />} />
               <Route path="/rival-details/:id" element={<RivalDetails />} />
+              <Route path="/saved-insights/" element={<SavedInsights />} />
             </Routes>
           </main>
         </div>

@@ -273,10 +273,10 @@ export default function AddMatch() {
   
     const updatedPlayers = players.map((player) => {
       // Filtrar goles, asistencias y tarjetas para el jugador
-      const goals = formData.scorers.filter((scorer) => scorer.player === player.name).length; // Cambiado para acceder a `scorer.player`
+      const playerGoals = formData.scorers.filter((scorer) => scorer.player === player.name);
       const assists = formData.assists.filter((assist) => assist === player.name).length;
       const playerCards = formData.cards.filter((card) => card.player === player.name);
-      
+    
       const yellowCount = playerCards.filter((c) => c.type === "yellow").length;
       const redCount = playerCards.filter((c) => c.type === "red").length;
     
@@ -315,12 +315,12 @@ export default function AddMatch() {
         }
     
         updatedPositions["Suplente"].matches += 1;
-        updatedPositions["Suplente"].goals += goals;
+        updatedPositions["Suplente"].goals += playerGoals.filter((goal) => goal.minute >= subIn.minute).length;
         updatedPositions["Suplente"].assists += assists;
         updatedPositions["Suplente"].yellowCards += yellowCount;
         updatedPositions["Suplente"].redCards += redCount;
-        updatedPositions["Suplente"].minutesPlayed = (updatedPositions["Suplente"].minutesPlayed ?? 0) + minutesPlayed;
-
+        updatedPositions["Suplente"].minutesPlayed =
+          (updatedPositions["Suplente"].minutesPlayed ?? 0) + minutesPlayed;
       }
     
       // Si el jugador fue titular
@@ -342,19 +342,27 @@ export default function AddMatch() {
           };
         }
     
+        // Filtrar goles anotados mientras jugaba en esta posición
+        const goalsInPosition = playerGoals.filter((goal) => {
+          const subOut = formData.subs.find((sub) => sub.playerOut === player.name);
+          const minutePlayed = subOut ? subOut.minute : 90;
+          return goal.minute <= minutePlayed;
+        });
+    
         updatedPositions[roleName].matches += 1;
-        updatedPositions[roleName].goals += goals;
+        updatedPositions[roleName].goals += goalsInPosition.length;
         updatedPositions[roleName].assists += assists;
         updatedPositions[roleName].yellowCards += yellowCount;
         updatedPositions[roleName].redCards += redCount;
-        updatedPositions[roleName].minutesPlayed = (updatedPositions[roleName].minutesPlayed ?? 0) + minutesPlayed;
+        updatedPositions[roleName].minutesPlayed =
+          (updatedPositions[roleName].minutesPlayed ?? 0) + minutesPlayed;
       });
     
       return {
         ...player,
         stats: {
           ...currentStats,
-          goals: currentStats.goals + goals,
+          goals: currentStats.goals + playerGoals.length,
           assists: currentStats.assists + assists,
           matches: currentStats.matches + 1,
           minutesPlayed: (currentStats.minutesPlayed ?? 0) + minutesPlayed,
@@ -363,8 +371,8 @@ export default function AddMatch() {
           positions: updatedPositions,
         },
       };
-      
     });
+    
     
     localStorage.setItem("players", JSON.stringify(updatedPlayers));
     
@@ -520,19 +528,19 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Add Match Result</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Agregar Partido</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-xl shadow-sm p-6">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-xl border-2 border-[#218b21] shadow-sm p-6">
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Opponent</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Rival</label>
             <select
               value={formData.rival}
               onChange={(e) => setFormData((prev) => ({ ...prev, rival: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
-              <option value="">Select Rival</option>
+              <option value="">Seleccionar Rival</option>
               {rivals.map((rival, i) => (
                 <option key={i} value={rival.name}>
                   {rival.name}
@@ -542,7 +550,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
             <input
               type="date"
               value={formData.date}
@@ -554,14 +562,14 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Formation</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Formacion</label>
           <select
             value={formData.formation}
             onChange={(e) => handleFormationChange(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             required
           >
-            <option value="">Select Formation</option>
+            <option value="">Seleccionar Formacion</option>
             {formations.map((formation, i) => (
               <option key={i} value={formation.name}>
                 {formation.name} - {formation.type}
@@ -587,7 +595,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
         {/*Match Score*/}
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Our Score</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Goles Propios</label>
             <input
               type="number"
               min="0"
@@ -600,7 +608,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Opponent Score</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Goles Rival</label>
             <input
               type="number"
               min="0"
@@ -617,7 +625,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
         {/* Shots Section */}
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Shots For</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tiros a Favor</label>
             <input
               type="number"
               min="0"
@@ -627,7 +635,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Shots Against</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tiros en Contra</label>
             <input
               type="number"
               min="0"
@@ -737,7 +745,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
                 scorers: [...prev.scorers, { player: "", minute: 0 }],
               }))
             }
-            className="text-indigo-500 hover:underline text-sm"
+            className="text-[#218b21] hover:underline text-sm"
           >
             + Agregar Goleador
           </button>
@@ -768,7 +776,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
           <button
             type="button"
             onClick={() => addField('assists')}
-            className="text-indigo-500 hover:underline text-sm"
+            className="text-[#218b21] hover:underline text-sm"
           >
             + Agregar Asistencia
           </button>
@@ -829,7 +837,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
         subs: [...prev.subs, { playerOut: '', playerIn: '', minute: 0 }],
       }));
     }}
-    className="text-indigo-500 hover:underline text-sm"
+    className="text-[#218b21] hover:underline text-sm"
   >
     + Agregar Sustitucion
   </button>
@@ -873,7 +881,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
   <button
     type="button"
     onClick={addCardField}
-    className="text-indigo-500 hover:underline text-sm"
+    className="text-[#218b21] hover:underline text-sm"
   >
     + Agregar Tarjeta
   </button>
@@ -882,7 +890,7 @@ localStorage.setItem("players", JSON.stringify(updatedPlayers));
 
         <button
           type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center space-x-2"
+          className="bg-[#218b21] text-white px-4 py-2 rounded-lg hover:bg-[#196a19] flex items-center space-x-2"
         >
           <Save className="h-5 w-5" />
           <span>Guardar Partido</span>

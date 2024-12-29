@@ -54,7 +54,7 @@ interface Formation {
 interface Match {
   id: string;
   formationPlayers: { [position: string]: string };
-  scorers: string[];
+  scorers: {player: string; minute: number}[];
   assists: string[];
   cards: { player: string; type: "yellow" | "red" }[];
   score: { home: number; away: number };
@@ -152,22 +152,19 @@ export default function PlayerDetails() {
     playerMatches.forEach((match) => {
       // Buscar sustituciones
       const subIn = match.subs?.find((sub) => sub.playerIn === playerName);
-      const subOut = match.subs?.find((sub) => sub.playerOut);
+      const subOut = match.subs?.find((sub) => sub.playerOut === playerName);
   
-      let assignedPosition = null;
-  
-      // Si el jugador entró como suplente
+      // Si el jugador fue suplente
       if (subIn) {
-        // Buscar la posición del jugador que salió
-        assignedPosition = Object.entries(match.formationPlayers).find(
-          ([, name]) => name === subOut?.playerOut
-        )?.[0]; // Primera posición encontrada
+        const position = Object.entries(match.formationPlayers).find(
+          ([, player]) => player === subOut?.playerOut
+        )?.[0];
   
-        if (assignedPosition) {
+        if (position) {
           const minutesPlayed = 90 - subIn.minute;
   
-          if (!positionsMap[assignedPosition]) {
-            positionsMap[assignedPosition] = {
+          if (!positionsMap[position]) {
+            positionsMap[position] = {
               minutes: 0,
               goals: 0,
               assists: 0,
@@ -176,19 +173,24 @@ export default function PlayerDetails() {
             };
           }
   
-          positionsMap[assignedPosition].minutes += minutesPlayed;
-          positionsMap[assignedPosition].goals += match.scorers.filter((s) => s === playerName).length;
-          positionsMap[assignedPosition].assists += match.assists.filter((a) => a === playerName).length;
-          positionsMap[assignedPosition].yellowCards += match.cards.filter(
+          // Goles durante el tiempo que jugó
+          const goalsInPosition = match.scorers.filter(
+            (scorer) => scorer.player === playerName && scorer.minute >= subIn.minute
+          ).length;
+  
+          positionsMap[position].minutes += minutesPlayed;
+          positionsMap[position].goals += goalsInPosition;
+          positionsMap[position].assists += match.assists.filter((a) => a === playerName).length;
+          positionsMap[position].yellowCards += match.cards.filter(
             (c) => c.player === playerName && c.type === "yellow"
           ).length;
-          positionsMap[assignedPosition].redCards += match.cards.filter(
+          positionsMap[position].redCards += match.cards.filter(
             (c) => c.player === playerName && c.type === "red"
           ).length;
         }
       }
   
-      // Si el jugador empezó como titular
+      // Si el jugador fue titular
       Object.entries(match.formationPlayers).forEach(([position, name]) => {
         if (name === playerName) {
           const minutesPlayed = subOut?.playerOut === playerName ? subOut.minute : 90;
@@ -203,8 +205,13 @@ export default function PlayerDetails() {
             };
           }
   
+          // Goles durante el tiempo que jugó
+          const goalsInPosition = match.scorers.filter(
+            (scorer) => scorer.player === playerName && (!subOut || scorer.minute <= subOut.minute)
+          ).length;
+  
           positionsMap[position].minutes += minutesPlayed;
-          positionsMap[position].goals += match.scorers.filter((s) => s === playerName).length;
+          positionsMap[position].goals += goalsInPosition;
           positionsMap[position].assists += match.assists.filter((a) => a === playerName).length;
           positionsMap[position].yellowCards += match.cards.filter(
             (c) => c.player === playerName && c.type === "yellow"
@@ -224,6 +231,9 @@ export default function PlayerDetails() {
     console.log("Final Positions Map:", positions);
     setPositionsPlayed(positions);
   };
+  
+  
+  
   
   
   
