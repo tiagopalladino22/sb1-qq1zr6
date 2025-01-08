@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Users, Trophy, TrendingUp, Minus, X, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import logo from '../assets/logo1.png';
 
 interface PlayerStats {
   goals: number;
@@ -89,9 +90,9 @@ export default function Dashboard() {
 
   if (isSmartphone) {
     return (
-      <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-center text-[#218b21]">
+      <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-center text-white">
         <img
-          src="/path-to-your-logo.png"
+          src={logo}
           alt="Logo"
           className="w-32 h-32 mb-6"
         />
@@ -211,6 +212,8 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
 
 
       
