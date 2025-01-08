@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Users, Trophy, TrendingUp, Minus, Calendar,X, Star, BarChart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { Users, Trophy, TrendingUp, Minus, X, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface PlayerStats {
   goals: number;
@@ -34,37 +34,43 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [isSmartphone, setIsSmartphone] = useState(false);
 
   const homeTeamName = "Highland";
 
   useEffect(() => {
-    const storedPlayers = JSON.parse(localStorage.getItem('players') || '[]');
-    const storedMatches = JSON.parse(localStorage.getItem('matches') || '[]');
+    const storedPlayers = JSON.parse(localStorage.getItem("players") || "[]");
+    const storedMatches = JSON.parse(localStorage.getItem("matches") || "[]");
 
     setPlayers(storedPlayers);
     setMatches(storedMatches);
+
+    // Detect screen size
+    const checkScreenSize = () => {
+      setIsSmartphone(window.innerWidth < 768); // Smartphone breakpoint
+    };
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   const totalPlayers = players.length;
   const matchesPlayed = matches.length;
-  const wins = matches.filter(match => match.score.home > match.score.away).length;
-  const draws = matches.filter(match => match.score.home === match.score.away).length;
+  const wins = matches.filter((match) => match.score.home > match.score.away).length;
+  const draws = matches.filter((match) => match.score.home === match.score.away).length;
   const losses = matchesPlayed - wins - draws;
   const totalPoints = matches.reduce((acc, match) => {
-    if (match.score.home > match.score.away) {
-      return acc + 3; // Victoria
-    } else if (match.score.home === match.score.away) {
-      return acc + 1; // Empate
-    }
-    return acc; // Derrota
+    if (match.score.home > match.score.away) return acc + 3;
+    if (match.score.home === match.score.away) return acc + 1;
+    return acc;
   }, 0);
-  
-  const maxPoints = matchesPlayed * 3; // Puntos máximos posibles
+
+  const maxPoints = matchesPlayed * 3;
   const pointPercentage = matchesPlayed ? Math.round((totalPoints / maxPoints) * 100) : 0;
-  
   const recentMatches = matches.slice(-5);
   const topPerformers = players
-    .map(player => ({
+    .map((player) => ({
       name: player.name,
       goals: player.stats?.goals || 0,
       assists: player.stats?.assists || 0,
@@ -73,21 +79,36 @@ export default function Dashboard() {
     .slice(0, 3);
 
   const stats = [
-    { label: 'Jugadores', value: totalPlayers.toString(), icon: Users, color: 'bg-blue-500' },
-    { label: 'Partidos', value: matchesPlayed.toString(), icon: Trophy, color: 'bg-green-500' },
-    { label: '% Puntos', value: `${pointPercentage}%`, icon: TrendingUp, color: 'bg-purple-500' },
-    { label: 'Victorias', value: wins.toString(), icon: Star, color: 'bg-yellow-500' },
-    { label: 'Empates', value: draws.toString(), icon: Minus, color: 'bg-gray-500' },
-    { label: 'Derrotas', value: losses.toString(), icon: X, color: 'bg-red-500' },
-    
+    { label: "Jugadores", value: totalPlayers.toString(), icon: Users, color: "bg-blue-500" },
+    { label: "Partidos", value: matchesPlayed.toString(), icon: Trophy, color: "bg-green-500" },
+    { label: "% Puntos", value: `${pointPercentage}%`, icon: TrendingUp, color: "bg-purple-500" },
+    { label: "Victorias", value: wins.toString(), icon: Star, color: "bg-yellow-500" },
+    { label: "Empates", value: draws.toString(), icon: Minus, color: "bg-gray-500" },
+    { label: "Derrotas", value: losses.toString(), icon: X, color: "bg-red-500" },
   ];
+
+  if (isSmartphone) {
+    return (
+      <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-center text-[#218b21]">
+        <img
+          src="/path-to-your-logo.png"
+          alt="Logo"
+          className="w-32 h-32 mb-6"
+        />
+        <h1 className="text-2xl font-bold mb-4">Optimizado para Computadoras</h1>
+        <p className="text-lg">
+          Esta aplicación está diseñada para ser utilizada en computadoras. Por favor, accede desde una pantalla más grande para la mejor experiencia.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard del Equipo</h1>
         <button
-          onClick={() => navigate('/match-planning')}
+          onClick={() => navigate("/match-planning")}
           className="bg-[#218b21] text-white px-4 py-2 rounded-lg hover:bg-[#196a19]"
         >
           Planificar Partido
@@ -98,7 +119,10 @@ export default function Dashboard() {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="bg-white rounded-xl  shadow-md shadow-[#218b21] p-6 flex items-center space-x-4">
+            <div
+              key={index}
+              className="bg-white rounded-xl shadow-md shadow-[#218b21] p-6 flex items-center space-x-4"
+            >
               <div className={`${stat.color} p-3 rounded-full`}>
                 <Icon className="h-6 w-6 text-white" />
               </div>
@@ -110,7 +134,6 @@ export default function Dashboard() {
           );
         })}
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Matches Section */}
         <div className="bg-white rounded-xl border-2 border-[#218b21] shadow-md p-6">
@@ -188,3 +211,6 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
+      
